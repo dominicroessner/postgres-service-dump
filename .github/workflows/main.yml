@@ -1,0 +1,30 @@
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:12.2
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        volumes:
+          - ${{ github.workspace }}:/mnt
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create database dump
+        run: |
+          echo $(docker exec ${{ job.services.postgres.id }} pg_dump -V)
+          docker exec ${{ job.services.postgres.id }} pg_dump -Fc postgres -U $PGUSER -f /mnt/testdb.dump
+          # file is now at ./testdb.dump in the workspace
+          ls -la
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
